@@ -5,8 +5,10 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Matrix
+import android.hardware.SensorManager
 import android.os.Bundle
 import android.util.Log
+import android.view.OrientationEventListener
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -24,6 +26,8 @@ class MainActivity : AppCompatActivity(), FaceContourDetectorProcessor.FaceConto
     lateinit var mainBainding: ActivityCameraBinding
     var mBitmap:Bitmap?=null
     private var bitmapCompressFormat = Bitmap.CompressFormat.JPEG
+    var orientationEventListener: OrientationEventListener? = null
+    private var isPortraitMode = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,6 +63,20 @@ class MainActivity : AppCompatActivity(), FaceContourDetectorProcessor.FaceConto
                     .load(bmImg)
                     .apply(RequestOptions().centerInside())
                     .into(mainBainding.image)
+            }
+
+            orientationEventListener = object : OrientationEventListener(this, SensorManager.SENSOR_DELAY_UI) {
+                override fun onOrientationChanged(orientation: Int) {
+                    try {
+                        val thresoldValue = (orientation + 45) / 90 % 4
+                        /*thresoldValue=1,2,3 for left & right lanscape & downside portrait*/
+                        isPortraitMode = thresoldValue == 0
+                    } catch (e: Exception) {
+                    }
+                }
+            }
+            if (orientationEventListener?.canDetectOrientation() == true) {
+                orientationEventListener?.enable()
             }
 
         }catch (e:Exception){
@@ -142,11 +160,13 @@ class MainActivity : AppCompatActivity(), FaceContourDetectorProcessor.FaceConto
     override fun onCapturedFace(originalCameraImage: Bitmap) {
         try {
             Log.e(" face detected", "face detected")
-            mainBainding.faceOverlay.border.color = Color.GREEN
-            mainBainding.faceOverlay.invalidate()
-            mainBainding.buttonContinue.isEnabled =true
+            if (isPortraitMode) {
+                mainBainding.faceOverlay.border.color = Color.GREEN
+                mainBainding.faceOverlay.invalidate()
+                mainBainding.buttonContinue.isEnabled = true
 
-            mBitmap = originalCameraImage
+                mBitmap = originalCameraImage
+            }
 
         } catch (e: Exception) {
             e.stackTrace
@@ -162,5 +182,18 @@ class MainActivity : AppCompatActivity(), FaceContourDetectorProcessor.FaceConto
         } catch (e: Exception) {
             e.stackTrace
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+            try {
+                if (orientationEventListener != null) {
+                    orientationEventListener!!.disable()
+                }
+                if (mCameraManager != null && mCameraManager!!.imageProcessor != null) {
+                    mCameraManager!!.imageProcessor!!.stop()
+                }
+            } catch (e: Exception) {
+            }
     }
 }
