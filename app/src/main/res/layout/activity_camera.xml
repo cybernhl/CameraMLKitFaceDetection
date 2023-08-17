@@ -53,6 +53,7 @@
             android:layout_margin="20dp"
             android:enabled="true"
             android:focusable="true"
+            android:textAllCaps="false"
             android:text="Take photo" />
 
     </FrameLayout>

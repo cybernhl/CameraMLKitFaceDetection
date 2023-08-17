@@ -138,6 +138,27 @@ class CameraManager(
         }
     }
 
+    fun stopCamera(){
+        try {
+            if (cameraProvider != null) {
+                cameraProvider?.unbindAll()
+            }
+
+            if (imageAnalyzer != null) {
+                cameraProvider?.unbind(imageAnalyzer)
+            }
+
+            if (imageAnalyzer != null) {
+                cameraProvider?.unbind(imageAnalyzer)
+            }
+            if (imageProcessor != null) {
+                imageProcessor?.stop()
+            }
+        }catch (e:Exception){
+
+        }
+    }
+
 
     companion object {
         private const val TAG = "CameraXBasic"

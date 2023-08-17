@@ -23,15 +23,16 @@ import java.io.FileOutputStream
 
 class MainActivity : AppCompatActivity(), FaceContourDetectorProcessor.FaceContourDetectorListener {
     var mCameraManager: CameraManager? = null
-    lateinit var mainBainding: ActivityCameraBinding
+    lateinit var mainBinding: ActivityCameraBinding
     var mBitmap:Bitmap?=null
     private var bitmapCompressFormat = Bitmap.CompressFormat.JPEG
     var orientationEventListener: OrientationEventListener? = null
     private var isPortraitMode = true
+    private var isCameraOpen= true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        mainBainding = DataBindingUtil.setContentView(this@MainActivity, R.layout.activity_camera)
+        mainBinding = DataBindingUtil.setContentView(this@MainActivity, R.layout.activity_camera)
         setupPermissions()
         init()
     }
@@ -39,30 +40,45 @@ class MainActivity : AppCompatActivity(), FaceContourDetectorProcessor.FaceConto
 
     private fun init(){
         try {
-            mainBainding.buttonContinue.setOnClickListener {
-                mainBainding.cardview.visibility = View.VISIBLE
-                mainBainding.previewView.visibility =View.GONE
-                mainBainding.faceOverlay.visibility = View.GONE
-                mainBainding.buttonContinue.visibility =View.GONE
-                val file = File(cacheDir, "Selfie.jpg")
-                file.createNewFile()
+            mainBinding.buttonContinue.setOnClickListener {
+              //  mainBainding.cardview.visibility = View.VISIBLE
+               // mainBainding.previewView.visibility =View.GONE
+              //  mainBainding.faceOverlay.visibility = View.GONE
+               // mainBainding.buttonContinue.visibility =View.GONE
+                if(!isCameraOpen){
+                    isCameraOpen = true
+                    mainBinding.buttonContinue.text="Take Photo"
+                    if (mCameraManager != null) {
+                        mCameraManager?.startCamera()
+                    }
+                }else{
+                    isCameraOpen = false
+                    mainBinding.buttonContinue.text="Retake Photo"
+                    val file = File(cacheDir, "Selfie.jpg")
+                    file.createNewFile()
 
-                //Convert bitmap to byte array
-                val bos = ByteArrayOutputStream()
-                mBitmap!!.compress(bitmapCompressFormat, 100, bos)
-                val bitmapData = bos.toByteArray()
+                    //Convert bitmap to byte array
+                    val bos = ByteArrayOutputStream()
+                    mBitmap!!.compress(bitmapCompressFormat, 100, bos)
+                    val bitmapData = bos.toByteArray()
 
-                //write the bytes in file
-                val fos = FileOutputStream(file)
-                fos.write(bitmapData)
-                fos.flush()
-                fos.close()
-                val bmImg = flip(BitmapFactory.decodeFile(file.absolutePath))
-                Glide.with(this)
-                    .asBitmap()
-                    .load(bmImg)
-                    .apply(RequestOptions().centerInside())
-                    .into(mainBainding.image)
+                    //write the bytes in file
+                    val fos = FileOutputStream(file)
+                    fos.write(bitmapData)
+                    fos.flush()
+                    fos.close()
+                    val bmImg = flip(BitmapFactory.decodeFile(file.absolutePath))
+                    Glide.with(this)
+                        .asBitmap()
+                        .load(bmImg)
+                        .apply(RequestOptions().centerInside())
+                        .into(mainBinding.image)
+
+                    if (mCameraManager != null) {
+                        mCameraManager?.stopCamera()
+                    }
+                }
+
             }
 
             orientationEventListener = object : OrientationEventListener(this, SensorManager.SENSOR_DELAY_UI) {
@@ -102,9 +118,9 @@ class MainActivity : AppCompatActivity(), FaceContourDetectorProcessor.FaceConto
             if (mCameraManager == null) {
                 mCameraManager = CameraManager(
                     this@MainActivity,
-                    mainBainding.previewView,
+                    mainBinding.previewView,
                     this,
-                    mainBainding.faceOverlay,
+                    mainBinding.faceOverlay,
                     this
                 )
             }
@@ -161,9 +177,9 @@ class MainActivity : AppCompatActivity(), FaceContourDetectorProcessor.FaceConto
         try {
             Log.e(" face detected", "face detected")
             if (isPortraitMode) {
-                mainBainding.faceOverlay.border.color = Color.GREEN
-                mainBainding.faceOverlay.invalidate()
-                mainBainding.buttonContinue.isEnabled = true
+                mainBinding.faceOverlay.border.color = Color.GREEN
+                mainBinding.faceOverlay.invalidate()
+                mainBinding.buttonContinue.isEnabled = true
 
                 mBitmap = originalCameraImage
             }
@@ -175,10 +191,10 @@ class MainActivity : AppCompatActivity(), FaceContourDetectorProcessor.FaceConto
 
     override fun onNoFaceDetected() {
         try {
-            mainBainding.faceOverlay.border.color = Color.RED
-            mainBainding.faceOverlay.invalidate()
+            mainBinding.faceOverlay.border.color = Color.RED
+            mainBinding.faceOverlay.invalidate()
             Log.e("no face detected", "no face detected")
-            mainBainding.buttonContinue.isEnabled =false
+            mainBinding.buttonContinue.isEnabled =false
         } catch (e: Exception) {
             e.stackTrace
         }
